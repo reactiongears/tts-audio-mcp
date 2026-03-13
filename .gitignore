@@ -6,6 +6,7 @@ models/
 *.wav
 *.mp3
 *.m4a
+.venv/
 __pycache__/
 *.pyc
 .env
