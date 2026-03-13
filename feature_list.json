@@ -1,0 +1,234 @@
+{
+  "project": "tts-audio-mcp",
+  "description": "MCP server that analyzes TTS audio recordings to identify pronunciation, pacing, quality, and artifact issues — enabling Claude Code and other agentic CLIs to debug voice call center audio the same way they debug code errors",
+  "features": [
+    {
+      "id": "F001",
+      "category": "Infrastructure",
+      "description": "whisper.cpp is installed with Metal acceleration on Apple Silicon",
+      "priority": "critical",
+      "steps": [
+        "Run 'which whisper-cli' or check whisper.cpp binary exists",
+        "Run whisper on a short test .wav file — should produce transcription",
+        "Verify Metal/GPU acceleration is active (check for 'metal' in build info or logs)"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F002",
+      "category": "Infrastructure",
+      "description": "Whisper large-v3-turbo model is downloaded and accessible",
+      "priority": "critical",
+      "steps": [
+        "Verify model file exists (~1.5 GB ggml-large-v3-turbo.bin or equivalent)",
+        "Run whisper with the model on a test file — should produce accurate transcription"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F003",
+      "category": "Infrastructure",
+      "description": "NISQA speech quality assessment library is installed",
+      "priority": "critical",
+      "steps": [
+        "Run 'python3 -c \"import nisqa\"' — should import without errors",
+        "Run NISQA on a test .wav file — should return MOS, noisiness, coloration, discontinuity, loudness scores"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F004",
+      "category": "Infrastructure",
+      "description": "Node.js MCP server project scaffolded with TypeScript and MCP SDK",
+      "priority": "critical",
+      "steps": [
+        "package.json exists with @modelcontextprotocol/sdk dependency",
+        "tsconfig.json exists with strict mode enabled",
+        "Run 'npm run build' — compiles without errors"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F005",
+      "category": "Transcription",
+      "description": "transcribe tool accepts an audio file and returns timestamped transcription",
+      "priority": "critical",
+      "steps": [
+        "Call the 'transcribe' MCP tool with a .wav file path",
+        "Response contains full transcription text",
+        "Response contains word-level timestamps (start_ms, end_ms per word)",
+        "Response includes detected language and confidence",
+        "Works with .wav, .mp3, and .m4a files"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F006",
+      "category": "Quality",
+      "description": "quality_score tool returns NISQA speech quality metrics",
+      "priority": "critical",
+      "steps": [
+        "Call the 'quality_score' MCP tool with a .wav file path",
+        "Response includes overall MOS score (1-5 scale)",
+        "Response includes noisiness score",
+        "Response includes discontinuity score",
+        "Response includes coloration score",
+        "Response includes loudness score",
+        "Each score includes a human-readable interpretation (e.g. 'good', 'poor', 'robotic')"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F007",
+      "category": "Analysis",
+      "description": "compare_tts tool diffs transcription against expected text to find mispronunciations",
+      "priority": "high",
+      "steps": [
+        "Call 'compare_tts' with audio file path and expected text string",
+        "Response identifies words that were mispronounced (expected vs. got)",
+        "Response shows the timestamp where each mispronunciation occurs",
+        "Response calculates Word Error Rate (WER)",
+        "Response identifies inserted, deleted, and substituted words"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F008",
+      "category": "Analysis",
+      "description": "Pacing analysis detects unnatural pauses and rushed segments",
+      "priority": "high",
+      "steps": [
+        "analyze_tts report includes pacing analysis section",
+        "Detects gaps longer than expected between words (e.g. >500ms)",
+        "Detects rushed words (duration significantly shorter than expected)",
+        "Reports speaking rate (words per minute) per segment",
+        "Flags segments that deviate significantly from natural speech pacing (~150 WPM)"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F009",
+      "category": "Analysis",
+      "description": "analyze_tts tool provides comprehensive full analysis report",
+      "priority": "high",
+      "steps": [
+        "Call 'analyze_tts' with audio path and optional expected text",
+        "Report includes transcription with timestamps",
+        "Report includes NISQA quality scores with interpretations",
+        "Report includes mispronunciation diff (if expected text provided)",
+        "Report includes pacing analysis with flagged issues",
+        "Report is formatted as structured text that an LLM can reason about",
+        "Report includes actionable suggestions (e.g. 'increase pause after greeting')"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F010",
+      "category": "Integration",
+      "description": "MCP server runs via stdio transport and is discoverable by clients",
+      "priority": "high",
+      "steps": [
+        "Server starts via 'node dist/index.js' without errors",
+        "Server responds to MCP initialize handshake",
+        "Server lists all tools (transcribe, quality_score, compare_tts, analyze_tts)",
+        "Each tool has proper JSON Schema input definitions"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F011",
+      "category": "Integration",
+      "description": "MCP server is configured in OpenCode (opencode.json)",
+      "priority": "high",
+      "steps": [
+        "opencode.json contains tts-audio entry in mcp section",
+        "Launch OpenCode — MCP server connects without errors",
+        "Run 'analyze_tts' tool from within OpenCode on a test file",
+        "Verify the analysis report appears in the conversation"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F012",
+      "category": "Integration",
+      "description": "MCP server is configured in Qwen Code (settings.json)",
+      "priority": "medium",
+      "steps": [
+        "~/.qwen/settings.json contains tts-audio entry in mcpServers",
+        "Launch Qwen Code — MCP server connects without errors",
+        "Run 'analyze_tts' tool from within Qwen Code on a test file"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F013",
+      "category": "Integration",
+      "description": "MCP server works with Claude Code via MCP config",
+      "priority": "medium",
+      "steps": [
+        "Claude Code MCP settings include tts-audio server entry",
+        "Launch Claude Code — MCP server connects",
+        "Attach or reference an audio file and ask Claude to analyze it",
+        "Claude calls the analyze_tts tool and reasons about the results"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F014",
+      "category": "Error Handling",
+      "description": "Graceful error handling for missing files, wrong formats, and tool failures",
+      "priority": "medium",
+      "steps": [
+        "Calling a tool with a non-existent file returns a clear error message",
+        "Calling a tool with an unsupported format (e.g. .txt) returns a helpful error",
+        "If whisper.cpp is not found, error message includes install instructions",
+        "If NISQA fails, the tool still returns transcription results (partial success)",
+        "Server does not crash on any malformed input"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F015",
+      "category": "Configuration",
+      "description": "Configurable via environment variables",
+      "priority": "medium",
+      "steps": [
+        "WHISPER_MODEL_PATH overrides default model location",
+        "WHISPER_BINARY overrides default whisper-cli path",
+        "NISQA_MODEL overrides default NISQA model",
+        "TTS_AUDIO_TEMP_DIR overrides temp directory for processing",
+        "All env vars have sensible defaults that work out of the box"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F016",
+      "category": "Documentation",
+      "description": "README documents installation, configuration, usage, and example output",
+      "priority": "low",
+      "steps": [
+        "README.md exists with installation steps for all dependencies",
+        "Documents all four MCP tools with input/output examples",
+        "Shows example integration config for OpenCode, Qwen Code, and Claude Code",
+        "Includes sample analyze_tts output so users know what to expect"
+      ],
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

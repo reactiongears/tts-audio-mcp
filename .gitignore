@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.js.map
+.DS_Store
+models/
+*.wav
+*.mp3
+*.m4a
+__pycache__/
+*.pyc
+.env
