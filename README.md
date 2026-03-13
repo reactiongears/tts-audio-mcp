@@ -178,15 +178,131 @@ Add to `~/.qwen/settings.json` under `"mcpServers"`:
 
 ## Usage
 
-Once configured, ask your coding assistant to analyze TTS audio:
+Once the MCP server is configured in your coding assistant, the tools are available automatically. You talk to your assistant in natural language — it decides when to call the tools and interprets the results for you.
 
-> "Analyze the TTS recording at /tmp/call-greeting.wav — the customer complained it sounded robotic"
+### Quick Start
 
-> "Compare /tmp/agent-response.wav against the expected script: 'Thank you for your patience, I'll transfer you now'"
+Generate a test audio file to try it out:
 
-> "Check the pacing on /recordings/ivr-menu.wav — callers are saying it's too fast"
+```bash
+# macOS — use the built-in TTS engine
+say -o /tmp/test-greeting.wav --data-format=LEI16@16000 \
+  "Hello. Thank you for calling Acme Support. How can I help you today?"
+```
 
-The LLM receives the structured report and can reason about what to adjust in your TTS configuration.
+Then in Claude Code, OpenCode, or Qwen Code:
+
+```
+> Analyze the audio at /tmp/test-greeting.wav
+```
+
+The assistant calls `analyze_tts` behind the scenes and returns a full report with transcription, quality scores, pacing, and issues.
+
+### Debugging TTS Problems
+
+**"It sounds robotic"** — Check pitch variation and monotone risk:
+
+```
+> Run quality_score on /recordings/agent-greeting.wav — customers say it sounds robotic
+```
+
+The report shows pitch std < 20 Hz = monotone risk. You know to increase prosody variation in your TTS config.
+
+**"Words are getting swallowed"** — Compare against expected script:
+
+```
+> Compare /recordings/transfer-prompt.wav against the expected text:
+> "Thank you for your patience. I'll transfer you to a specialist now."
+```
+
+The tool transcribes the audio, diffs it against your script, and reports substitutions ("specialist" → "specialist's"), deletions, and WER. You know exactly which words the TTS is mangling.
+
+**"It's talking too fast / has weird pauses"** — Check pacing:
+
+```
+> Analyze /recordings/ivr-menu.wav — callers are complaining it's too fast
+```
+
+The report flags speaking rate (natural range: 120-180 WPM), individual rushed words (< 80ms), and unnatural pauses (> 500ms). You know where to add SSML breaks or adjust rate.
+
+**"Something is off but I'm not sure what"** — Full analysis:
+
+```
+> Run a full analysis on /recordings/hold-message.wav
+> The expected text is: "Your call is important to us. Please hold and an agent will be with you shortly."
+```
+
+Returns everything: transcription, quality metrics, pacing analysis, pronunciation diff, and a prioritized issues summary.
+
+### Batch Debugging
+
+You can analyze multiple recordings in a conversation:
+
+```
+> Compare these three recordings against their scripts and tell me which one has the most issues:
+> 1. /recordings/greeting.wav — "Welcome to Acme Support"
+> 2. /recordings/hold.wav — "Please hold while I look that up"
+> 3. /recordings/goodbye.wav — "Thank you for calling. Have a great day!"
+```
+
+The assistant calls `compare_tts` for each file and summarizes which recordings need attention.
+
+### Using Individual Tools
+
+You can also ask for specific analysis:
+
+| What you want | What to ask |
+|---------------|-------------|
+| Just the transcription | "Transcribe /path/to/audio.wav" |
+| Just quality metrics | "Check the audio quality of /path/to/audio.wav" |
+| Just pronunciation accuracy | "Compare /path/to/audio.wav against 'expected text here'" |
+| Everything at once | "Full TTS analysis on /path/to/audio.wav" |
+
+### Supported Audio Formats
+
+- `.wav` — processed directly (best performance)
+- `.mp3` — auto-converted to WAV via ffmpeg
+- `.m4a` — auto-converted to WAV via ffmpeg
+
+### Interpreting Results
+
+**Quality Scores:**
+| Metric | Good | Concerning |
+|--------|------|------------|
+| Pitch std | 25-80 Hz (natural variation) | < 15 Hz (monotone/robotic) |
+| Dynamic range | 10-50 dB | < 10 dB (flat) or > 70 dB (may clip) |
+| Silence ratio | 10-50% | > 50% (too much dead air) or < 10% (no breathing room) |
+
+**Pacing:**
+| Metric | Natural range | Flag |
+|--------|---------------|------|
+| Speaking rate | 120-180 WPM | Outside range |
+| Word duration | > 80ms | < 80ms = rushed |
+| Inter-word gap | < 500ms | > 500ms = unnatural pause |
+
+**Pronunciation (WER):**
+| WER | Interpretation |
+|-----|----------------|
+| 0% | Perfect match |
+| 1-5% | Minor issues (articles, contractions) |
+| 5-15% | Noticeable mispronunciations |
+| > 15% | Significant problems |
+
+### Real-World Workflow
+
+A typical voice call center debugging session:
+
+1. Customer reports: *"The bot sounds weird when it says the account number"*
+2. You pull the call recording: `/recordings/call-1234-segment.wav`
+3. You know the expected script: `"Your account number is 7 8 4 2 0 1 3"`
+4. In Claude Code:
+   ```
+   > Compare /recordings/call-1234-segment.wav against "Your account number is 7 8 4 2 0 1 3"
+   > What's wrong and how should I fix the TTS config?
+   ```
+5. Claude calls `compare_tts`, sees the TTS is running digits together ("seven eight four" → "seventy-eight four"), and suggests adding SSML `<say-as interpret-as="digits">` tags or inter-digit pauses to your TTS configuration
+
+The LLM doesn't just report the numbers — it reasons about the root cause and suggests specific fixes to your TTS code or configuration.
 
 ## License
 
